@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 
@@ -19,6 +20,9 @@ func main() {
 		}
 		if n > 1{
 			log.Fatal("Please include only one command right now")
+		}
+		if userInput == "exit"{
+			os.Exit(0)
 		}
 		fmt.Printf("%s: command not found\n",userInput)
 	}
