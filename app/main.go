@@ -81,9 +81,13 @@ func checkCommands(inputs string) string{
 	usercmd := cmd[1]
 	if slices.Contains(shellcommands.Commands,usercmd){
 		fmt.Printf("%s is a shell builtin\n",usercmd)
+		
 		return ""
 	}else {
-		fmt.Printf("%s: not found\n",usercmd)
+		if !shellcommands.SearchPath(usercmd){
+			fmt.Printf("%s: not found\n",usercmd)
+			return usercmd
+		}
 		return usercmd
 
 	}
