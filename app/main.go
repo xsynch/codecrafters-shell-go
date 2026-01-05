@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"slices"
 	"strings"
@@ -53,8 +54,10 @@ func main() {
 			// }
 
 		}
+		if !executeProgram(line){
 		
-		fmt.Printf("%s: command not found\n",line)
+			fmt.Printf("%s: command not found\n",line)
+		}
 	}
 	
 }
@@ -91,5 +94,32 @@ func checkCommands(inputs string) string{
 		return usercmd
 
 	}
+	
+}
+
+func executeProgram(progName string) bool {
+	baseExec := strings.Split(progName, " ")[0]
+	args := strings.Split(progName," ")[1:]
+	_, err := exec.LookPath(baseExec)
+	if err != nil {
+		// fmt.Printf("%s: command not found", baseExec)
+		return false 
+	}
+	// fmt.Printf("Executing %s with arguments: %s\n", path, args)
+	var test exec.Cmd
+	test.Args = args 
+	cmd := exec.Command(baseExec,test.Args...)
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		fmt.Println(err)
+	}
+	// results,err := cmd.Output()
+	// if err != nil {
+	// 	fmt.Printf("%s\n", err.Error())
+	// 	return 
+	// }
+	// fmt.Println(results)
+	 return true 
 	
 }
