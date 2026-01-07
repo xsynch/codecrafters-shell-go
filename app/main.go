@@ -43,7 +43,7 @@ func main() {
 			os.Exit(0)
 		}
 		if userEcho.MatchString(line){
-			processEcho(line)
+			shellcommands.ProcessEcho(line)
 			continue 
 		}
 		if userType.MatchString(line){
@@ -63,17 +63,17 @@ func main() {
 }
 
 
-func processEcho(input string){
-	data := strings.Split(input, " ")
-	if len(data) == 1{
-		fmt.Println("")
-		return 
-	}
-	if len(data) > 1{
-		fmt.Printf("%s\n",strings.Join(data[1:]," "))
-		return 
-	}
-}
+// func processEcho(input string){
+// 	data := strings.Split(input, " ")
+// 	if len(data) == 1{
+// 		fmt.Println("")
+// 		return 
+// 	}
+// 	if len(data) > 1{
+// 		fmt.Printf("%s\n",strings.Join(data[1:]," "))
+// 		return 
+// 	}
+// }
 
 func checkCommands(inputs string) string{
 	cmd := strings.Split(inputs," ")
@@ -98,28 +98,49 @@ func checkCommands(inputs string) string{
 }
 
 func executeProgram(progName string) bool {
+	resultsTest := []string{}
 	baseExec := strings.Split(progName, " ")[0]
-	args := strings.Split(progName," ")[1:]
+	// args := strings.Split(progName," ")[1:]
+	args2 := strings.Replace(progName,baseExec,"",1)
+	args2 = strings.TrimSpace(args2)
+	// fmt.Println(args2)
 	_, err := exec.LookPath(baseExec)
 	if err != nil {
-		// fmt.Printf("%s: command not found", baseExec)
+		
 		return false 
 	}
-	// fmt.Printf("Executing %s with arguments: %s\n", path, args)
+	if !strings.Contains(args2,"'"){
+
+		resultsTest = strings.Split(args2," ")
+	}else {
+
+		for _, val := range strings.Split(args2,"'") {
+			if strings.TrimSpace(val) != "" {
+				// fmt.Println(val)
+				resultsTest = append(resultsTest, fmt.Sprintf("%s",val))
+			}
+		}
+	}
+	
+	
+	// fmt.Printf("results: %s\n",resultsTest)
+	// for _,val := range args {
+	// 	re := regexp.MustCompile(`'`)
+	// 	resultsTest = append(resultsTest,re.ReplaceAllString(val,"\""))
+	// }
+	// fmt.Printf("new results: %s\n",resultsTest)
 	var test exec.Cmd
-	test.Args = args 
+	test.Args = resultsTest
 	cmd := exec.Command(baseExec,test.Args...)
+	
+	
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
 		fmt.Println(err)
 	}
-	// results,err := cmd.Output()
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err.Error())
-	// 	return 
-	// }
-	// fmt.Println(results)
+
 	 return true 
 	
 }
