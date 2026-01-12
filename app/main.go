@@ -42,11 +42,12 @@ func main() {
 		if userExit.MatchString(line){
 			os.Exit(0)
 		}
-		if userEcho.MatchString(line){
-			shellcommands.ProcessEcho(line)
+		if userEcho.MatchString(line){		
+			shellcommands.ProcessInput(line)	
+			// shellcommands.ProcessEcho(line)
 			continue 
 		}
-		if userType.MatchString(line){
+		if userType.MatchString(line){			
 			line = checkCommands(line)
 			continue 
 			// if line == ""{
@@ -99,37 +100,76 @@ func checkCommands(inputs string) string{
 
 func executeProgram(progName string) bool {
 	resultsTest := []string{}
+	var test exec.Cmd
+
+
 	baseExec := strings.Split(progName, " ")[0]
-	// args := strings.Split(progName," ")[1:]
+	
 	args2 := strings.Replace(progName,baseExec,"",1)
 	args2 = strings.TrimSpace(args2)
-	// fmt.Println(args2)
+
+	
 	_, err := exec.LookPath(baseExec)
 	if err != nil {
 		
 		return false 
 	}
-	if !strings.Contains(args2,"'"){
+	// fmt.Printf("Executing program: %s\n",progName)
+	// args2 = shellcommands.PreprocessArgs(args2)
+	
+	if shellcommands.StringHasQuotes(args2){
+		// dbQProcessed := shellcommands.HandleDoubleQuotes(args2)
+		
+		if strings.HasPrefix(args2,"\"") {
+			// redb := regexp.MustCompile("\".*\"")
+			// fmt.Println(strings.Split(args2,"\""))
+			// foundStrings := redb.Split(args2,-1)	
+			foundStrings := strings.Split(args2,"\"")		
+			if len(foundStrings) > 0{
+				// fmt.Printf("%s and length: %d\n",foundStrings,len(foundStrings))
 
-		resultsTest = strings.Split(args2," ")
-	}else {
-
-		for _, val := range strings.Split(args2,"'") {
-			if strings.TrimSpace(val) != "" {
-				// fmt.Println(val)
-				resultsTest = append(resultsTest, fmt.Sprintf("%s",val))
+				for _,val := range foundStrings{
+					if strings.TrimSpace(val) != ""{
+						resultsTest = append(resultsTest, val)
+					}
+				}
 			}
+				
 		}
+		if strings.HasPrefix(args2,"'"){
+			
+			foundStrings := strings.Split(args2,"'")
+			if len(foundStrings) > 0{
+				for _,val := range foundStrings{
+					if strings.TrimSpace(val) != ""{
+						resultsTest = append(resultsTest, val)
+					}
+				}
+			}
+		
+
+		}
+		
+
+	
+		// if !strings.Contains(args2,"'"){
+
+		// 	resultsTest = strings.Split(args2," ")
+		// }else {
+
+		// 	for _, val := range strings.Split(args2,"'") {
+		// 		if strings.TrimSpace(val) != "" {
+		// 			// fmt.Println(val)
+		// 			resultsTest = append(resultsTest, fmt.Sprintf("%s",val))
+		// 			// resultsTest = append(resultsTest, shellcommands.HandleSingleQuotes(val))
+		// 		}
+		// 	}
+		// } 
+	} else {
+		resultsTest = strings.Split(args2," ")
 	}
+
 	
-	
-	// fmt.Printf("results: %s\n",resultsTest)
-	// for _,val := range args {
-	// 	re := regexp.MustCompile(`'`)
-	// 	resultsTest = append(resultsTest,re.ReplaceAllString(val,"\""))
-	// }
-	// fmt.Printf("new results: %s\n",resultsTest)
-	var test exec.Cmd
 	test.Args = resultsTest
 	cmd := exec.Command(baseExec,test.Args...)
 	
