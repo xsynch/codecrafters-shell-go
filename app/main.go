@@ -102,22 +102,29 @@ func executeProgram(progName string) bool {
 	resultsTest := []string{}
 	var test exec.Cmd
 
+	cmdAndArgs := shellcommands.CmdHelper(progName)
+	// fmt.Printf("program: %s and args: %s\n",cmdAndArgs[0],cmdAndArgs[1:])
+	// return true 
 
-	baseExec := strings.Split(progName, " ")[0]
+	// baseExec := strings.Split(progName, " ")[0]
+	baseExec := cmdAndArgs[0]
 	
-	args2 := strings.Replace(progName,baseExec,"",1)
-	args2 = strings.TrimSpace(args2)
+	// args2 := strings.Replace(progName,baseExec,"",1)
+	// args2 = strings.TrimSpace(args2)
+
+	args2 := cmdAndArgs[1:]
+	// args2 = strings.TrimSpace(args2)
 
 	
 	_, err := exec.LookPath(baseExec)
 	if err != nil {
-		
+		// fmt.Errorf(err.Error())
 		return false 
 	}
 	// fmt.Printf("Executing program: %s\n",progName)
 	// args2 = shellcommands.PreprocessArgs(args2)
 	
-	if shellcommands.StringHasQuotes(args2){		
+	if shellcommands.StringHasQuotes(fmt.Sprintf("%s",args2)){		
 		
 		// if strings.HasPrefix(args2,"\"") {
 
@@ -142,7 +149,8 @@ func executeProgram(progName string) bool {
 		// 		}
 		// 	}
 		// }
-		resultsTest = shellcommands.CmdHelper(args2)
+		// resultsTest = shellcommands.CmdHelper(args2)
+		resultsTest = shellcommands.CmdHelper(fmt.Sprintf("%s",args2))
 
 	
 		// if !strings.Contains(args2,"'"){
@@ -159,7 +167,7 @@ func executeProgram(progName string) bool {
 		// 	}
 		// } 
 	} else {
-		resultsTest = strings.Split(args2," ")
+		resultsTest = args2// strings.Split(args2," ")
 	}
 
 	
