@@ -117,39 +117,32 @@ func executeProgram(progName string) bool {
 	// fmt.Printf("Executing program: %s\n",progName)
 	// args2 = shellcommands.PreprocessArgs(args2)
 	
-	if shellcommands.StringHasQuotes(args2){
-		// dbQProcessed := shellcommands.HandleDoubleQuotes(args2)
+	if shellcommands.StringHasQuotes(args2){		
 		
-		if strings.HasPrefix(args2,"\"") {
-			// redb := regexp.MustCompile("\".*\"")
-			// fmt.Println(strings.Split(args2,"\""))
-			// foundStrings := redb.Split(args2,-1)	
-			foundStrings := strings.Split(args2,"\"")		
-			if len(foundStrings) > 0{
-				// fmt.Printf("%s and length: %d\n",foundStrings,len(foundStrings))
+		// if strings.HasPrefix(args2,"\"") {
 
-				for _,val := range foundStrings{
-					if strings.TrimSpace(val) != ""{
-						resultsTest = append(resultsTest, val)
-					}
-				}
-			}
+		// 	foundStrings := strings.Split(args2,"\"")		
+		// 	if len(foundStrings) > 0{				
+		// 		for _,val := range foundStrings{
+		// 			if strings.TrimSpace(val) != ""{
+		// 				resultsTest = append(resultsTest, val)
+		// 			}
+		// 		}
+		// 	}
 				
-		}
-		if strings.HasPrefix(args2,"'"){
+		// }
+		// if strings.HasPrefix(args2,"'"){
 			
-			foundStrings := strings.Split(args2,"'")
-			if len(foundStrings) > 0{
-				for _,val := range foundStrings{
-					if strings.TrimSpace(val) != ""{
-						resultsTest = append(resultsTest, val)
-					}
-				}
-			}
-		
-
-		}
-		
+		// 	foundStrings := strings.Split(args2,"'")
+		// 	if len(foundStrings) > 0{
+		// 		for _,val := range foundStrings{
+		// 			if strings.TrimSpace(val) != ""{
+		// 				resultsTest = append(resultsTest, val)
+		// 			}
+		// 		}
+		// 	}
+		// }
+		resultsTest = shellcommands.CmdHelper(args2)
 
 	
 		// if !strings.Contains(args2,"'"){

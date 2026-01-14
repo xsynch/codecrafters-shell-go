@@ -2,6 +2,7 @@ package shellcommands
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -9,6 +10,8 @@ var Commands = []string{"exit","echo","exit","type"}
 var singleQuotesOpen bool 
 var dbQuotesOpen bool 
 var escaped bool
+var spacePrinted bool 
+var SpecialChars = []string{"\"","\\","$","`"}
 
 func PreprocessArgs(commandArgs string) string {
 	results := ""
@@ -26,7 +29,7 @@ func ProcessInput(input string){
 	results := ""
 	singleQuotesOpen = false 
 	dbQuotesOpen = false
-	spacePrinted := false 
+	spacePrinted = false 
 	escaped = false 
 	
 	
@@ -48,6 +51,7 @@ func ProcessInput(input string){
 		}
 		if cmdArgs[i] == '"' && !dbQuotesOpen && !singleQuotesOpen{
 			dbQuotesOpen = true 
+			
 			// fmt.Println("Starting double Quotes")
 			// spacePrinted = false
 			continue 
@@ -66,6 +70,11 @@ func ProcessInput(input string){
 		if cmdArgs[i] == '\'' && singleQuotesOpen && !dbQuotesOpen {
 			singleQuotesOpen = false
 			// fmt.Println("Ending Single Quotes")
+			continue
+		}
+		if cmdArgs[i] == '\\' && dbQuotesOpen &&slices.Contains(SpecialChars,string(cmdArgs[i])){
+			results += string(cmdArgs[i+1])
+			i+=1
 			continue
 		}
 		//if neither quote is open then need to check if a space has already been printed
@@ -136,4 +145,68 @@ func ProcessInput(input string){
 	// fmt.Println(results)
 	
 	
+}
+
+func CmdHelper(input string) []string {
+	strResults := ""
+	results := []string{}
+	singleQuotesOpen = false
+	dbQuotesOpen = false 
+	spacePrinted = false 
+	// fmt.Printf("input: %s with length: %d\n",input,len(input))
+	
+	for i := 0; i < len(input); i++{
+
+		if input[i] == '"' && !dbQuotesOpen && !singleQuotesOpen {
+			dbQuotesOpen = true 
+			continue 
+		}
+		if input[i] == '"' && dbQuotesOpen && !singleQuotesOpen{
+			// results = append(results, strResults)
+			dbQuotesOpen = false 
+			continue
+		}
+		if input[i] == '\'' && !singleQuotesOpen && !dbQuotesOpen {
+			singleQuotesOpen = true 
+			// strResults += string(input[i])
+			continue 
+		}
+		if input[i] == '\'' && singleQuotesOpen && !dbQuotesOpen{
+			singleQuotesOpen = false 
+			// results = append(results, strResults)
+			continue
+		}
+		if input[i] == ' ' && !singleQuotesOpen && !dbQuotesOpen {
+			// fmt.Println("space found")
+			// strResults += string(input[i])
+			// spacePrinted = true
+			// fmt.Printf("Adding: %s to results\n",strResults)
+			results = append(results, strResults)
+			strResults = ""
+			continue 
+		} 
+		if input[i] == '\\' && dbQuotesOpen &&slices.Contains(SpecialChars,string(input[i+1])) {
+			i += 1
+			strResults += string(input[i])
+			continue 
+		}
+		strResults += string(input[i])
+
+
+		
+		
+
+		
+
+	}
+		// fmt.Println(i)
+					
+			if strings.TrimSpace(strResults) != "" {
+				results = append(results,strResults)
+			}
+		
+		
+	// fmt.Printf("Results: %s with length: %d\n",results,len(results))
+	
+	return results
 }
