@@ -2,6 +2,8 @@ package shellcommands
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -25,7 +27,7 @@ func PreprocessArgs(commandArgs string) string {
 	return results
 }
 
-func ProcessInput(input string){
+func ProcessInput(input string, redirectionLocation string){
 	results := ""
 	singleQuotesOpen = false 
 	dbQuotesOpen = false
@@ -37,7 +39,7 @@ func ProcessInput(input string){
 	cmd := strings.Split(input," ")[0]
 	cmdArgs := strings.Replace(input,cmd,"",1)
 	cmdArgs = strings.TrimSpace(cmdArgs)
-	// runeSlice := []rune(input)
+	
 
 	for i :=0; i < len(cmdArgs); i++{
 		if cmdArgs[i] == '\\' && !singleQuotesOpen && !dbQuotesOpen{
@@ -94,7 +96,27 @@ func ProcessInput(input string){
 		
 
 		}
-		fmt.Println(results)
+		if len(redirectionLocation) == 0 {
+			fmt.Println(results)
+		} else {
+			if _, err := os.Stat(redirectionLocation); os.IsNotExist(err) {
+    			os.MkdirAll(filepath.Dir(redirectionLocation), 0700) // Create your file
+			}
+
+			originalStdout := os.Stdout
+			file,err := os.OpenFile(redirectionLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr,"Error opening the file: %s\n",err.Error())
+			
+			}
+			// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+			defer file.Close()
+			os.Stdout = file
+			fmt.Fprintf(file,"%s\n",results)
+			os.Stdout = originalStdout
+			 
+
+		}
 	
 
 	
@@ -164,4 +186,58 @@ func CmdHelper(input string) []string {
 	
 	
 	return results
+}
+
+func CheckForRedirect(input string) (bool,string,string) {
+	singleQuotesOpen = false 
+	dbQuotesOpen = false 
+	newLine := ""
+	// fmt.Println("Checking for redirect in string: ",input)
+	
+	for i := 0; i < len(input); i++ {
+		currentChar := input[i]
+		if currentChar == '"' && !dbQuotesOpen && !singleQuotesOpen{
+			dbQuotesOpen = true 
+			continue 
+		}
+		if currentChar == '"' && dbQuotesOpen && !singleQuotesOpen{
+			dbQuotesOpen = false
+			continue 
+		}
+		if currentChar == '\'' && !dbQuotesOpen && !singleQuotesOpen{
+			singleQuotesOpen = true 
+			continue 
+		}
+		if currentChar == '\'' && !dbQuotesOpen && singleQuotesOpen{
+			singleQuotesOpen = false 
+			continue 
+		}
+		// if (currentChar == '1'  || currentChar == '>') && !dbQuotesOpen && !singleQuotesOpen{
+		if currentChar == '>' && !dbQuotesOpen && !singleQuotesOpen{
+			redirectionLocation := ""
+			
+			
+			// if currentChar == '1' && input[i+1] == '>' && input[i-1] != '-'{
+			if input[i-1] == '1'{
+				redirectionLocation = strings.Split(input[i:],">")[1]
+				newLine = strings.Replace(input,input[i-1:],"",-1)
+				// fmt.Printf("%s with: %d\n",strings.Split(input[i:],">"),len(strings.Split(input[i:],">")))
+				// fmt.Printf("redirecting the output to: %s\n",input[i:])
+			} else {
+				// fmt.Printf("on char: %v in list: %s with: %d\n",string(input[i]),strings.Split(input[i:],">"),len(strings.Split(input[i:],">")))
+				redirectionLocation = strings.Split(input[i:],">")[1]
+				newLine = strings.Replace(input,input[i:],"",-1)
+
+			}
+			// newLine = strings.Replace(input,input[i:],"",-1)
+			redirectionLocation = strings.TrimSpace(redirectionLocation)
+			// fmt.Printf("Redirect Location: %s\n",redirectionLocation)
+			// fmt.Printf("Trying to remove %s from input\n",input[i:])
+			return true, newLine, redirectionLocation
+
+		}
+	}
+
+
+	return false,"","" 
 }

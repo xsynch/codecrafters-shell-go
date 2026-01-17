@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -38,12 +39,19 @@ func main() {
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
+		redir,newLine,redirectLocation := shellcommands.CheckForRedirect(line)	
+		if redir {
+			// fmt.Println("Redirecting stdout to ",location)
+			line = newLine
+			// fmt.Println("Updated line: ",line)
+		}
 
 		if userExit.MatchString(line){
 			os.Exit(0)
 		}
-		if userEcho.MatchString(line){		
-			shellcommands.ProcessInput(line)	
+		if userEcho.MatchString(line){	
+
+			shellcommands.ProcessInput(line, redirectLocation)	
 			// shellcommands.ProcessEcho(line)
 			continue 
 		}
@@ -55,7 +63,7 @@ func main() {
 			// }
 
 		}
-		if !executeProgram(line){
+		if !executeProgram(line,redirectLocation){
 		
 			fmt.Printf("%s: command not found\n",line)
 		}
@@ -98,7 +106,7 @@ func checkCommands(inputs string) string{
 	
 }
 
-func executeProgram(progName string) bool {
+func executeProgram(progName string, redirectLocation string) bool {
 	resultsTest := []string{}
 	var test exec.Cmd
 
@@ -126,46 +134,10 @@ func executeProgram(progName string) bool {
 	
 	if shellcommands.StringHasQuotes(fmt.Sprintf("%s",args2)){		
 		
-		// if strings.HasPrefix(args2,"\"") {
 
-		// 	foundStrings := strings.Split(args2,"\"")		
-		// 	if len(foundStrings) > 0{				
-		// 		for _,val := range foundStrings{
-		// 			if strings.TrimSpace(val) != ""{
-		// 				resultsTest = append(resultsTest, val)
-		// 			}
-		// 		}
-		// 	}
-				
-		// }
-		// if strings.HasPrefix(args2,"'"){
-			
-		// 	foundStrings := strings.Split(args2,"'")
-		// 	if len(foundStrings) > 0{
-		// 		for _,val := range foundStrings{
-		// 			if strings.TrimSpace(val) != ""{
-		// 				resultsTest = append(resultsTest, val)
-		// 			}
-		// 		}
-		// 	}
-		// }
-		// resultsTest = shellcommands.CmdHelper(args2)
 		resultsTest = shellcommands.CmdHelper(fmt.Sprintf("%s",args2))
 
-	
-		// if !strings.Contains(args2,"'"){
 
-		// 	resultsTest = strings.Split(args2," ")
-		// }else {
-
-		// 	for _, val := range strings.Split(args2,"'") {
-		// 		if strings.TrimSpace(val) != "" {
-		// 			// fmt.Println(val)
-		// 			resultsTest = append(resultsTest, fmt.Sprintf("%s",val))
-		// 			// resultsTest = append(resultsTest, shellcommands.HandleSingleQuotes(val))
-		// 		}
-		// 	}
-		// } 
 	} else {
 		resultsTest = args2// strings.Split(args2," ")
 	}
@@ -173,14 +145,30 @@ func executeProgram(progName string) bool {
 	
 	test.Args = resultsTest
 	cmd := exec.Command(baseExec,test.Args...)
-	
-	
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		fmt.Println(err)
+	
+	if len(redirectLocation) == 0 {
+		cmd.Stdout = os.Stdout
+	} else {
+		
+		if _, err := os.Stat(redirectLocation); os.IsNotExist(err) {
+    			os.MkdirAll(filepath.Dir(redirectLocation), 0700) // Create your file
+		}
+		file,err := os.OpenFile(redirectLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
+		if err != nil {
+			fmt.Fprintf(cmd.Stderr,"Error opening the file: %s\n",err.Error())
+			return true 
+		}
+		// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+		defer file.Close()
+		cmd.Stdout = file 
+
 	}
+	// cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	// if err != nil {
+	// 	fmt.Fprintf(cmd.Stderr,"Command Error: %s\n",err)
+	// }
 
 	 return true 
 	
