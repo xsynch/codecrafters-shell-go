@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	
 	"log"
 	"os"
 	"os/exec"
@@ -32,6 +33,11 @@ func main() {
 			os.Exit(1)
 		}
 		line = strings.Trim(line,"\n")
+		originalLine := line 
+		
+		// userCmd := shellcommands.BuildCommand(line)
+		// fmt.Println(userCmd)
+		
 		// fmt.Printf("Line entered: %s\n",strings.Trim(line,"\n"))
 
 		// var userInput string
@@ -39,6 +45,7 @@ func main() {
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
+		userCmdString := shellcommands.BuildCommand(originalLine)
 		redir,newLine,redirectLocation := shellcommands.CheckForRedirect(line)	
 		if redir {
 			// fmt.Println("Redirecting stdout to ",location)
@@ -50,8 +57,8 @@ func main() {
 			os.Exit(0)
 		}
 		if userEcho.MatchString(line){	
-
-			shellcommands.ProcessInput(line, redirectLocation)	
+			shellcommands.PrintEcho(userCmdString)
+			// shellcommands.ProcessInput(line, redirectLocation)	
 			// shellcommands.ProcessEcho(line)
 			continue 
 		}
@@ -63,7 +70,7 @@ func main() {
 			// }
 
 		}
-		if !executeProgram(line,redirectLocation){
+		if !executeProgram(originalLine,redirectLocation){
 		
 			fmt.Printf("%s: command not found\n",line)
 		}
@@ -109,52 +116,57 @@ func checkCommands(inputs string) string{
 func executeProgram(progName string, redirectLocation string) bool {
 	resultsTest := []string{}
 	var test exec.Cmd
-
-	cmdAndArgs := shellcommands.CmdHelper(progName)
-	// fmt.Printf("program: %s and args: %s\n",cmdAndArgs[0],cmdAndArgs[1:])
-	// return true 
-
-	// baseExec := strings.Split(progName, " ")[0]
-	baseExec := cmdAndArgs[0]
-	
-	// args2 := strings.Replace(progName,baseExec,"",1)
-	// args2 = strings.TrimSpace(args2)
-
-	args2 := cmdAndArgs[1:]
-	// args2 = strings.TrimSpace(args2)
-
-	
-	_, err := exec.LookPath(baseExec)
+	// fmt.Printf("Sending over: %s\n",progName)
+	userCmd := shellcommands.BuildCommand(progName)
+	// fmt.Printf("Looking up command: %s\n",userCmd.Name)
+	_, err := exec.LookPath(userCmd.Name)
 	if err != nil {
 		// fmt.Errorf(err.Error())
 		return false 
 	}
-	// fmt.Printf("Executing program: %s\n",progName)
-	// args2 = shellcommands.PreprocessArgs(args2)
-	
-	if shellcommands.StringHasQuotes(fmt.Sprintf("%s",args2)){		
-		
-
-		resultsTest = shellcommands.CmdHelper(fmt.Sprintf("%s",args2))
-
-
-	} else {
-		resultsTest = args2// strings.Split(args2," ")
-	}
-
-	
+	// fmt.Println(userCmd)
 	test.Args = resultsTest
-	cmd := exec.Command(baseExec,test.Args...)
+	cmd := exec.Command(userCmd.Name,userCmd.Args...)
 	cmd.Stderr = os.Stderr
 	
-	if len(redirectLocation) == 0 {
-		cmd.Stdout = os.Stdout
-	} else {
-		
-		if _, err := os.Stat(redirectLocation); os.IsNotExist(err) {
-    			os.MkdirAll(filepath.Dir(redirectLocation), 0700) // Create your file
+	
+	if userCmd.StderrRedirect.Redirect {
+		var filePerms os.FileMode
+		if userCmd.StdoutRedirect.Append {
+			 filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_APPEND)
+		} else {
+			filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 		}
-		file,err := os.OpenFile(redirectLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
+		if _, err := os.Stat(userCmd.StderrRedirect.RedirectLocation); os.IsNotExist(err) {
+    			os.MkdirAll(filepath.Dir(userCmd.StderrRedirect.RedirectLocation), 0700) // Create your file
+		}
+		// file,err := os.OpenFile(userCmd.StderrRedirect.RedirectLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
+		file,err := os.OpenFile(userCmd.StderrRedirect.RedirectLocation, int(filePerms),0644)
+		if err != nil {
+			fmt.Fprintf(cmd.Stderr,"Error opening the file: %s\n",err.Error())
+			return true 
+		}
+		// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+		defer file.Close()
+		cmd.Stderr = file 
+	} else {
+		cmd.Stderr = os.Stderr		
+
+	}
+	if userCmd.StdoutRedirect.Redirect {
+		var filePerms os.FileMode
+		if userCmd.StdoutRedirect.Append {
+			 filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_APPEND)
+		} else {
+			filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
+		}
+		if _, err := os.Stat(userCmd.StderrRedirect.RedirectLocation); os.IsNotExist(err) {
+    			os.MkdirAll(filepath.Dir(userCmd.StderrRedirect.RedirectLocation), 0700) // Create your file
+		}
+		if _, err := os.Stat(userCmd.StdoutRedirect.RedirectLocation); os.IsNotExist(err) {
+    			os.MkdirAll(filepath.Dir(userCmd.StdoutRedirect.RedirectLocation), 0700) // Create your file
+		}
+		file,err := os.OpenFile(userCmd.StdoutRedirect.RedirectLocation, int(filePerms),0644)
 		if err != nil {
 			fmt.Fprintf(cmd.Stderr,"Error opening the file: %s\n",err.Error())
 			return true 
@@ -162,14 +174,79 @@ func executeProgram(progName string, redirectLocation string) bool {
 		// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
 		defer file.Close()
 		cmd.Stdout = file 
+	} else {
+		cmd.Stdout = os.Stdout
 
 	}
 	// cmd.Stderr = os.Stderr
 	err = cmd.Run()
+
+	
+	return true 
+
+	// cmdAndArgs := shellcommands.CmdHelper(progName)
+	// // fmt.Printf("program: %s and args: %s\n",cmdAndArgs[0],cmdAndArgs[1:])
+	// // return true 
+
+	// // baseExec := strings.Split(progName, " ")[0]
+	// baseExec := cmdAndArgs[0]
+	
+	// // args2 := strings.Replace(progName,baseExec,"",1)
+	// // args2 = strings.TrimSpace(args2)
+
+	// args2 := cmdAndArgs[1:]
+	// // args2 = strings.TrimSpace(args2)
+
+	
+	// _, err = exec.LookPath(baseExec)
 	// if err != nil {
-	// 	fmt.Fprintf(cmd.Stderr,"Command Error: %s\n",err)
+	// 	// fmt.Errorf(err.Error())
+	// 	return false 
+	// }
+	// // fmt.Printf("Executing program: %s\n",progName)
+	// // args2 = shellcommands.PreprocessArgs(args2)
+	// userCmd.Name = baseExec
+	// fmt.Println(userCmd)
+	
+	// if shellcommands.StringHasQuotes(fmt.Sprintf("%s",args2)){		
+		
+
+	// 	resultsTest = shellcommands.CmdHelper(fmt.Sprintf("%s",args2))
+
+
+	// } else {
+	// 	resultsTest = args2// strings.Split(args2," ")
 	// }
 
-	 return true 
+	
+	// test.Args = resultsTest
+	// cmd = exec.Command(baseExec,test.Args...)
+	// cmd.Stderr = os.Stderr
+	
+	// if len(redirectLocation) == 0 {
+	// 	cmd.Stdout = os.Stdout
+	// } else {
+		
+	// 	if _, err := os.Stat(redirectLocation); os.IsNotExist(err) {
+    // 			os.MkdirAll(filepath.Dir(redirectLocation), 0700) // Create your file
+	// 	}
+	// 	file,err := os.OpenFile(redirectLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
+	// 	if err != nil {
+	// 		fmt.Fprintf(cmd.Stderr,"Error opening the file: %s\n",err.Error())
+	// 		return true 
+	// 	}
+	// 	// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+	// 	defer file.Close()
+	// 	cmd.Stdout = file 
+
+	// }
+	// // cmd.Stderr = os.Stderr
+	// err = cmd.Run()
+	// // if err != nil {
+	// // 	fmt.Fprintf(cmd.Stderr,"Command Error: %s\n",err)
+	// // }
+
+	//  return true 
 	
 }
+

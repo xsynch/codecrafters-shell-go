@@ -8,12 +8,40 @@ import (
 	"strings"
 )
 
+
+type StdOutRedirect struct {
+	Redirect bool 
+	Append bool 
+	RedirectLocation string 
+}
+
+type StdErrRedirect struct {
+	Redirect bool 
+	Append bool
+	RedirectLocation string 
+}
+
+type Command struct {
+	Name string 
+	Args []string
+	StdoutRedirect StdOutRedirect
+	StderrRedirect StdErrRedirect
+
+}
+
+
 var Commands = []string{"exit","echo","exit","type"}
 var singleQuotesOpen bool 
 var dbQuotesOpen bool 
 var escaped bool
 var spacePrinted bool 
-var SpecialChars = []string{"\"","\\","$","`"}
+var SpecialChars = []string{"\"","\\","$","`","\n"}
+
+
+func NewCommand() Command {
+	return Command{}
+}
+
 
 func PreprocessArgs(commandArgs string) string {
 	results := ""
@@ -192,6 +220,7 @@ func CheckForRedirect(input string) (bool,string,string) {
 	singleQuotesOpen = false 
 	dbQuotesOpen = false 
 	newLine := ""
+	
 	// fmt.Println("Checking for redirect in string: ",input)
 	
 	for i := 0; i < len(input); i++ {
@@ -218,7 +247,7 @@ func CheckForRedirect(input string) (bool,string,string) {
 			
 			
 			// if currentChar == '1' && input[i+1] == '>' && input[i-1] != '-'{
-			if input[i-1] == '1'{
+			if input[i-1] == '1' {
 				redirectionLocation = strings.Split(input[i:],">")[1]
 				newLine = strings.Replace(input,input[i-1:],"",-1)
 				// fmt.Printf("%s with: %d\n",strings.Split(input[i:],">"),len(strings.Split(input[i:],">")))
@@ -227,6 +256,9 @@ func CheckForRedirect(input string) (bool,string,string) {
 				// fmt.Printf("on char: %v in list: %s with: %d\n",string(input[i]),strings.Split(input[i:],">"),len(strings.Split(input[i:],">")))
 				redirectionLocation = strings.Split(input[i:],">")[1]
 				newLine = strings.Replace(input,input[i:],"",-1)
+
+			}
+			if input[i-1] == '2'{
 
 			}
 			// newLine = strings.Replace(input,input[i:],"",-1)
@@ -240,4 +272,203 @@ func CheckForRedirect(input string) (bool,string,string) {
 
 
 	return false,"","" 
+}
+
+
+func BuildCommand(cmdLine string) Command  {
+	fullCmd := NewCommand()
+	baseCmd := ""
+	escaped = false
+	redirectOpen := false 
+	_ = redirectOpen
+
+	errRedirectOpen := false 
+	_ = errRedirectOpen
+	stdoutRedirectOpen := false 
+	_ = stdoutRedirectOpen
+	
+	
+	fullCmd.StderrRedirect.Redirect = false
+	fullCmd.StdoutRedirect.Redirect = false 
+	cmdLine = strings.TrimSpace(cmdLine)
+	
+	// if CheckCmdStartWithQuotes(cmdLine){
+		strResults := ""
+		results := []string{}
+		singleQuotesOpen = false
+		dbQuotesOpen = false 
+		spacePrinted = false 
+		
+		// newLine := ""
+		// fmt.Printf("%s is the sent command line:\n",cmdLine)
+		
+		for i := 0; i < len(cmdLine); i++{
+			
+			currentChar := cmdLine[i]
+			// fmt.Println(string(currentChar))
+			if escaped {
+				
+					strResults += string(currentChar)
+				
+				// fmt.Printf("Current stResults: %s\n",strResults)
+				escaped = false 
+				continue
+			}
+			if cmdLine[i] == '"' && !dbQuotesOpen && !singleQuotesOpen {
+				dbQuotesOpen = true 
+				continue 
+			}
+			if cmdLine[i] == '"' && dbQuotesOpen && !singleQuotesOpen {
+				
+				dbQuotesOpen = false 
+				continue
+			}
+			if cmdLine[i] == '\'' && !singleQuotesOpen && !dbQuotesOpen {
+				singleQuotesOpen = true 
+				// strResults += string(input[i])
+				continue 
+			}
+			if cmdLine[i] == '\'' && singleQuotesOpen && !dbQuotesOpen{
+				singleQuotesOpen = false 
+				
+				continue
+			}
+			if currentChar == '>' && !dbQuotesOpen && !singleQuotesOpen{
+				// redirectionLocation := ""
+				
+						
+				switch cmdLine[i-1]{
+				case '1':
+					fullCmd.StdoutRedirect.Redirect = true 
+					// fmt.Printf("%s is now in results\n",strResults)
+					strResults = strResults[:len(strResults)-1]
+					stdoutRedirectOpen = true 
+					// fmt.Printf("%s is now in results\n",strResults)
+
+				case '2':
+					// fmt.Printf("in stderr case\n")
+					errRedirectOpen = true
+					fullCmd.StderrRedirect.Redirect = true 
+					if len(strResults) -1 > 0{
+						strResults = strResults[:len(strResults)-1] 
+					} else {
+						strResults = ""					
+					}
+				case '>':
+					if fullCmd.StdoutRedirect.Redirect{
+						fullCmd.StdoutRedirect.Append = true
+					} else if fullCmd.StderrRedirect.Redirect{
+						fullCmd.StderrRedirect.Append = true
+					}
+				default:
+					fullCmd.StdoutRedirect.Redirect = true 
+					stdoutRedirectOpen = true 
+				}
+				// if cmdLine[i-1] == '2' {
+				// 	fullCmd.StderrRedirect.redirect = true 
+				// 	strResults = strResults[:len(strResults)-1]
+				// 	// redirectionLocation = strings.Split(cmdLine[i:],">")[1]
+				// 	// newLine = strings.Replace(cmdLine,cmdLine[i:],"",-1)
+				// } else if cmdLine[i-1] == '1' {
+				// 	fullCmd.StdoutRedirect.redirect = true 
+				// 	strResults = strResults[:len(strResults)-1]
+				// } else {
+				// 		fullCmd.StdoutRedirect.redirect = true 
+				// }
+				continue 
+				// redirectionLocation = strings.TrimSpace(redirectionLocation)
+
+			}
+	
+			if cmdLine[i] == ' ' && !singleQuotesOpen && !dbQuotesOpen {
+				// fmt.Printf("Current args: %s with length: %d\n",fullCmd.Args,len(fullCmd.Args))	
+				if len(baseCmd) == 0 {
+					// fmt.Printf("full cmd: %s\n",strResults)
+					baseCmd = strResults
+					fullCmd.Name = baseCmd
+					
+				} else if fullCmd.StdoutRedirect.Redirect && stdoutRedirectOpen{
+					// fmt.Printf("adding to stdout: %s\n",strResults)
+					if len(strResults) > 0 {
+						fullCmd.StdoutRedirect.RedirectLocation = strResults
+						stdoutRedirectOpen = false 
+					}
+
+				} else if fullCmd.StderrRedirect.Redirect && errRedirectOpen{
+					// fmt.Printf("adding to stderr: %s\n",strResults)
+					if len(strResults) > 0 {
+						fullCmd.StdoutRedirect.RedirectLocation = strResults
+						errRedirectOpen = false 
+					}
+
+				}else {
+					
+					// if strResults != " "{
+					// strResults = strings.TrimSpace(strResults)
+					// fmt.Printf("Adding %s to strResults\n",strResults)
+					if len(strResults) > 0 {
+					fullCmd.Args = append(fullCmd.Args, strResults)
+					results = append(results, strResults)
+					redirectOpen = false
+					}
+					// }
+					
+				}
+				strResults = ""
+				// fmt.Printf("Current args: %s with length: %d\n",fullCmd.Args,len(fullCmd.Args))	
+				continue 
+			} 
+			// if currentChar == '\\'{
+			// 	fmt.Printf("On: %s\n",string(currentChar))
+			// }
+			if cmdLine[i] == '\\' && !singleQuotesOpen{ //&& (currentChar == '\\' && !dbQuotesOpen && !slices.Contains(SpecialChars,string(cmdLine[i+1]))) {
+				if dbQuotesOpen && slices.Contains(SpecialChars, string(cmdLine[i+1])){
+					escaped = true 
+					// continue 
+				} else if dbQuotesOpen && !slices.Contains(SpecialChars,string(cmdLine[i+1])) {
+					escaped =false
+					strResults += string(currentChar)
+				} else if !dbQuotesOpen {
+					escaped = true 
+				}
+				
+				// i += 1
+				// fmt.Println("escaping next character, ",string(cmdLine[i+1]))
+				// strResults += string(cmdLine[i])
+				continue 
+			}
+
+			// if fullCmd.StdoutRedirect.redirect  && redirectOpen {
+			// 	fullCmd.StdoutRedirect.redirectLocation += string(currentChar)
+			// } else if fullCmd.StderrRedirect.redirect {
+			// 	fullCmd.StderrRedirect.redirectLocation += string(currentChar)
+			// } else {
+			// fmt.Printf("adding %s to strResults\n",strResults)
+			strResults += string(cmdLine[i])
+				
+			// }
+			
+	
+					
+
+		
+		}
+		if strings.TrimSpace(strResults) != "" {
+			if errRedirectOpen {
+				fullCmd.StderrRedirect.RedirectLocation = strResults
+			} else if stdoutRedirectOpen {
+				fullCmd.StdoutRedirect.RedirectLocation = strResults
+			} else {
+				// fmt.Printf("Left over string: %s\n",strResults)
+				// fmt.Printf("Last args: %s with length: %d\n",fullCmd.Args,len(fullCmd.Args))	
+				fullCmd.Args = append(fullCmd.Args, strResults)
+				results = append(results,strResults)
+			}
+		}
+		
+		// fmt.Println(len(fullCmd.Args))	
+		return fullCmd
+	// }
+	// fmt.Println(fullCmd)
+	// return []string{}
 }
