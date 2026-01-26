@@ -112,7 +112,7 @@ func PrintEcho(cmd Command){
 	
 	if cmd.StderrRedirect.Redirect {
 		var filePerms os.FileMode
-		if cmd.StdoutRedirect.Append {
+		if cmd.StderrRedirect.Append {
 			 filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 		} else {
 			filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_TRUNC)

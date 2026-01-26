@@ -132,7 +132,7 @@ func executeProgram(progName string, redirectLocation string) bool {
 	
 	if userCmd.StderrRedirect.Redirect {
 		var filePerms os.FileMode
-		if userCmd.StdoutRedirect.Append {
+		if userCmd.StderrRedirect.Append {
 			 filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_APPEND)
 		} else {
 			filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
@@ -161,7 +161,7 @@ func executeProgram(progName string, redirectLocation string) bool {
 			filePerms = os.FileMode(os.O_WRONLY|os.O_CREATE|os.O_TRUNC)
 		}
 		if _, err := os.Stat(userCmd.StderrRedirect.RedirectLocation); os.IsNotExist(err) {
-    			os.MkdirAll(filepath.Dir(userCmd.StderrRedirect.RedirectLocation), 0700) // Create your file
+    			os.MkdirAll(filepath.Dir(userCmd.StdoutRedirect.RedirectLocation), 0700) // Create your file
 		}
 		if _, err := os.Stat(userCmd.StdoutRedirect.RedirectLocation); os.IsNotExist(err) {
     			os.MkdirAll(filepath.Dir(userCmd.StdoutRedirect.RedirectLocation), 0700) // Create your file
