@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"fmt"
-	
-	"log"
+
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,25 +13,63 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/shell-starter-go/app/shellcommands"
+	"github.com/chzyer/readline"
 )
 
 
 var _ = fmt.Print
 
+var completer = readline.NewPrefixCompleter(
+	readline.PcItem("echo"),
+	readline.PcItem("exit"),	
+	readline.PcItem("type"),
+	
+)
+
 
 func main() {
+	l, err := readline.NewEx(&readline.Config{
+		Prompt:          "$ ",
+		HistoryFile:     "/tmp/readline.tmp",
+		AutoComplete:    completer,
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+
+		HistorySearchFold:   true,
+		// FuncFilterInputRune: filterInput,
+	})
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	l.CaptureExitSignal()
+
 	userExit,_ := regexp.Compile("^exit$")
 	userEcho,_ := regexp.Compile("^echo ")
 	userType,_ := regexp.Compile("^type ")
 	
 	for {
-		fmt.Print("$ ")
+		/*fmt.Print("$ ")
 		reader := bufio.NewReader((os.Stdin))
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 			os.Exit(1)
+		}*/
+		line, err := l.Readline()
+		if err == readline.ErrInterrupt {
+			if len(line) == 0 {
+				break
+			} else {
+				continue
+			}
+		} else if err == io.EOF {
+			break
 		}
+
+		line = strings.TrimSpace(line)
+
+
 		line = strings.Trim(line,"\n")
 		originalLine := line 
 		
@@ -79,17 +117,6 @@ func main() {
 }
 
 
-// func processEcho(input string){
-// 	data := strings.Split(input, " ")
-// 	if len(data) == 1{
-// 		fmt.Println("")
-// 		return 
-// 	}
-// 	if len(data) > 1{
-// 		fmt.Printf("%s\n",strings.Join(data[1:]," "))
-// 		return 
-// 	}
-// }
 
 func checkCommands(inputs string) string{
 	cmd := strings.Split(inputs," ")
@@ -184,69 +211,7 @@ func executeProgram(progName string, redirectLocation string) bool {
 	
 	return true 
 
-	// cmdAndArgs := shellcommands.CmdHelper(progName)
-	// // fmt.Printf("program: %s and args: %s\n",cmdAndArgs[0],cmdAndArgs[1:])
-	// // return true 
-
-	// // baseExec := strings.Split(progName, " ")[0]
-	// baseExec := cmdAndArgs[0]
 	
-	// // args2 := strings.Replace(progName,baseExec,"",1)
-	// // args2 = strings.TrimSpace(args2)
-
-	// args2 := cmdAndArgs[1:]
-	// // args2 = strings.TrimSpace(args2)
-
-	
-	// _, err = exec.LookPath(baseExec)
-	// if err != nil {
-	// 	// fmt.Errorf(err.Error())
-	// 	return false 
-	// }
-	// // fmt.Printf("Executing program: %s\n",progName)
-	// // args2 = shellcommands.PreprocessArgs(args2)
-	// userCmd.Name = baseExec
-	// fmt.Println(userCmd)
-	
-	// if shellcommands.StringHasQuotes(fmt.Sprintf("%s",args2)){		
-		
-
-	// 	resultsTest = shellcommands.CmdHelper(fmt.Sprintf("%s",args2))
-
-
-	// } else {
-	// 	resultsTest = args2// strings.Split(args2," ")
-	// }
-
-	
-	// test.Args = resultsTest
-	// cmd = exec.Command(baseExec,test.Args...)
-	// cmd.Stderr = os.Stderr
-	
-	// if len(redirectLocation) == 0 {
-	// 	cmd.Stdout = os.Stdout
-	// } else {
-		
-	// 	if _, err := os.Stat(redirectLocation); os.IsNotExist(err) {
-    // 			os.MkdirAll(filepath.Dir(redirectLocation), 0700) // Create your file
-	// 	}
-	// 	file,err := os.OpenFile(redirectLocation, os.O_WRONLY|os.O_CREATE|os.O_TRUNC,0644)
-	// 	if err != nil {
-	// 		fmt.Fprintf(cmd.Stderr,"Error opening the file: %s\n",err.Error())
-	// 		return true 
-	// 	}
-	// 	// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
-	// 	defer file.Close()
-	// 	cmd.Stdout = file 
-
-	// }
-	// // cmd.Stderr = os.Stderr
-	// err = cmd.Run()
-	// // if err != nil {
-	// // 	fmt.Fprintf(cmd.Stderr,"Command Error: %s\n",err)
-	// // }
-
-	//  return true 
 	
 }
 
