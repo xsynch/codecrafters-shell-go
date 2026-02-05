@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/codecrafters-io/shell-starter-go/app/shellcommands"
+	"github.com/codecrafters-io/shell-starter-go/app/helpers"
 	"github.com/chzyer/readline"
 )
 
@@ -28,6 +29,7 @@ var completer = readline.NewPrefixCompleter(
 
 
 func main() {
+	
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "$ ",
 		HistoryFile:     "/tmp/readline.tmp",
@@ -36,6 +38,7 @@ func main() {
 		EOFPrompt:       "exit",
 
 		HistorySearchFold:   true,
+		Listener: &helpers.BellListener{Completer: completer},
 		// FuncFilterInputRune: filterInput,
 	})
 	if err != nil {
@@ -43,6 +46,7 @@ func main() {
 	}
 	defer l.Close()
 	l.CaptureExitSignal()
+
 
 	userExit,_ := regexp.Compile("^exit$")
 	userEcho,_ := regexp.Compile("^echo ")
@@ -68,7 +72,7 @@ func main() {
 		}
 
 		line = strings.TrimSpace(line)
-
+		
 
 		line = strings.Trim(line,"\n")
 		originalLine := line 
