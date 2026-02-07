@@ -46,6 +46,7 @@ func main() {
 	}
 	defer l.Close()
 	l.CaptureExitSignal()
+	helpers.SetPaths(completer)
 
 
 	userExit,_ := regexp.Compile("^exit$")
