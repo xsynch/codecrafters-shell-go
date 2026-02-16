@@ -27,18 +27,28 @@ var completer = readline.NewPrefixCompleter(
 	
 )
 
+var defaultCommands = [][]rune{[]rune("echo"),[]rune("exit"),[]rune("type")}
+
+var newCompleter = helpers.NewCustomPrefixCompleter(defaultCommands)
+
 
 func main() {
+	
 	
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "$ ",
 		HistoryFile:     "/tmp/readline.tmp",
-		AutoComplete:    completer,
+		// AutoComplete:    completer,
+		AutoComplete:    newCompleter,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
 
 		HistorySearchFold:   true,
-		Listener: &helpers.BellListener{Completer: completer},
+		// Listener: &helpers.BellListener{Completer: completer},
+		Listener: &helpers.ChangeListener{Completer: newCompleter},
+		VimMode: false,
+		
+		
 		// FuncFilterInputRune: filterInput,
 	})
 	if err != nil {
@@ -46,7 +56,9 @@ func main() {
 	}
 	defer l.Close()
 	l.CaptureExitSignal()
-	helpers.SetPaths(completer)
+	// helpers.SetPaths(completer)
+	helpers.SetCmdPaths(newCompleter)
+	
 
 
 	userExit,_ := regexp.Compile("^exit$")
@@ -71,7 +83,7 @@ func main() {
 		} else if err == io.EOF {
 			break
 		}
-
+		
 		line = strings.TrimSpace(line)
 		
 

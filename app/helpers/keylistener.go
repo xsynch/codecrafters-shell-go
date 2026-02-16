@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,10 +15,69 @@ type BellListener struct {
     Completer *readline.PrefixCompleter
 }
 
+type ChangeListener struct {
+	Completer *CustomCompleter
+}
+
+func (cl *ChangeListener) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
+	    if key != 9 { 
+			TabPressed = 0
+		}
+		return nil, 0, false
+}
+
+func SetCmdPaths(completer *CustomCompleter) {
+	childPaths := [][]rune{}
+	childPaths = append(childPaths, completer.commands...)
+	paths := strings.Split(os.Getenv("PATH"),":")
+	defaultCommands := []string{}
+	for _,val := range(completer.commands){
+		defaultCommands = append(defaultCommands, string(val))
+	}
+	for _,val := range(paths) {
+
+		f, err := os.Open(val)
+		if err != nil {			
+
+			continue
+		}
+		files, err := f.ReadDir(0)
+		if err != nil {
+			
+			continue
+		}
+		for _, v := range files {
+			if !v.IsDir(){
+				if _, err := os.Stat(val); os.IsNotExist(err) {      		
+	 		 		continue 
+   				}
+			
+				_, err := os.Stat(filepath.Join(val,v.Name()))
+				if err != nil {
+					
+					continue
+				}
+				if !slices.Contains(defaultCommands,v.Name()){
+					// log.Printf("adding %s to list",v.Name())
+					childPaths = append(childPaths, []rune(v.Name()))								
+				}
+				
+				
+			}
+		}
+	}
+	// completer.commands = append(completer.commands, childPaths...)
+	completer.commands = childPaths
+}
+
+
+
 func (l *BellListener) OnChange(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
     // Check if the key pressed is Tab (usually 9)
 	cmds := []string{}
-    if key == 9 { 
+	tabPressed := 0
+    if key == 9 && tabPressed == 0 { 
+		tabPressed += 1
 		
         lineStr := string(line[:pos])
 		
@@ -41,6 +101,10 @@ func (l *BellListener) OnChange(line []rune, pos int, key rune) (newLine []rune,
             fmt.Print("\a")
         }
     }
+	if key == 9 && tabPressed > 1{
+		tabPressed += 1
+		fmt.Println("Tab pressed for second time")
+	}
     return nil, 0, false
 }
 
