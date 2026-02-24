@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	
+
 	"slices"
 
 	"strings"
@@ -33,6 +34,7 @@ func (cc *CustomCompleter) Do(line []rune, offset int) ([][]rune, int) {
 	switch len(matches) {
 	case 0:
 		fmt.Print("\a")
+		
 		return [][]rune{line[offset:]}, offset
 	case 1:		
 		match := matches[0]
@@ -40,15 +42,26 @@ func (cc *CustomCompleter) Do(line []rune, offset int) ([][]rune, int) {
 		// return [][]rune{match[offset:]}, offset
 		return [][]rune{[]rune(test)}, offset
 	default:
+		strMatches := []string{}
+		for _,match := range(matches){
+			strMatches = append(strMatches, string(match))
+		}
+			slices.Sort(strMatches)
 		if TabPressed == 1 {
 			fmt.Print("\a")			
+			m := lcp(matches)		
+			m = []rune(strings.Trim(string(m),string(line)))
+			// if string(m) == string(line) {
+			// 	fmt.Print("\a")			
+			// }
+			// fmt.Printf("\r\n%s\r\n",strings.Trim(string(m),string(line)))	
+			return [][]rune{m},offset
 		}
-		if TabPressed == 2 {			
-			strMatches := []string{}
-			for _,match := range(matches){
-				strMatches = append(strMatches, string(match))
-			}
-			slices.Sort(strMatches)
+		if TabPressed == 2 {						
+			// for _,match := range(matches){
+			// 	strMatches = append(strMatches, string(match))
+			// }
+			// slices.Sort(strMatches)
 			fmt.Printf("\r\n%s\r\n",strings.Join(strMatches,"  "))
 			TabPressed = 0
 		}
@@ -60,4 +73,32 @@ func (cc *CustomCompleter) Do(line []rune, offset int) ([][]rune, int) {
 func NewCustomPrefixCompleter(defaultCommands [][]rune) *CustomCompleter {
 
 	return &CustomCompleter{commands: defaultCommands,}
+}
+
+
+func lcp(matches [][]rune) ([]rune){
+	// for i,val := range(matches){
+	// 	log.Printf(" %s ",string(val))
+	// 	for _,r := range(val[1:]){
+	// 		// log.Println(string(matches[0][i]))
+	// 		if len(string(r)) <= i || string(val[i]) != string(matches[0][i]){
+	// 			// log.Println(string(val))
+	// 			return matches[0][:i]
+	// 			// return val 
+	// 		}
+	// 	}
+	// }
+
+	for charIndex :=0; charIndex < len(matches[0]); charIndex+=1{
+		for stringIndex := 1; stringIndex < len(matches); stringIndex += 1{
+			if(len(matches[stringIndex]) <= charIndex) || matches[stringIndex][charIndex] != matches[0][charIndex]{
+				// log.Println(string(matches[0][:charIndex]))
+				return matches[0][:charIndex]
+			}
+		}
+
+	}
+
+
+	return matches[0] 
 }
