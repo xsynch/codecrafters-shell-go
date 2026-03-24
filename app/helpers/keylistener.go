@@ -114,14 +114,10 @@ func SetPaths(completer *readline.PrefixCompleter) {
 	childPaths = append(childPaths, completer.GetChildren()...)
 	paths := strings.Split(os.Getenv("PATH"),":")
 	for _,val := range(paths) {
-		// fmt.Printf("%s\n",val)
-		// if _, err := os.Stat(val); os.IsNotExist(err) {
-      	// 	fmt.Println(val, "does not exist")
-	 	// 	 continue 
-   		// }
+
 		f, err := os.Open(val)
 		if err != nil {
-			// fmt.Println(err)
+			
 
 			continue
 		}
@@ -144,7 +140,7 @@ func SetPaths(completer *readline.PrefixCompleter) {
 				}
 				childPaths = append(childPaths, readline.PcItem(v.Name()))
 				completer.SetChildren(childPaths)
-				// fmt.Printf("%s with perms%s\n",v.Name(), info.Mode())
+				
 			}
 		}
 	}
