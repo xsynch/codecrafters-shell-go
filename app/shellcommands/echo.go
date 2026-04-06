@@ -156,3 +156,62 @@ func PrintEcho(cmd Command) {
 	os.Stderr = originalStdErr
 
 }
+
+
+func ReturnEcho(cmd Command) string {
+	originalStdErr := os.Stderr
+	originalStdOut := os.Stdout
+
+	if cmd.StderrRedirect.Redirect {
+		var filePerms os.FileMode
+		if cmd.StderrRedirect.Append {
+			filePerms = os.FileMode(os.O_WRONLY | os.O_CREATE | os.O_APPEND)
+		} else {
+			filePerms = os.FileMode(os.O_WRONLY | os.O_CREATE | os.O_TRUNC)
+		}
+		if _, err := os.Stat(cmd.StderrRedirect.RedirectLocation); os.IsNotExist(err) {
+			os.MkdirAll(filepath.Dir(cmd.StderrRedirect.RedirectLocation), 0700) // Create your file
+		}
+		if _, err := os.Stat(cmd.StderrRedirect.RedirectLocation); os.IsNotExist(err) {
+			os.MkdirAll(filepath.Dir(cmd.StderrRedirect.RedirectLocation), 0700) // Create your file
+		}
+		file, err := os.OpenFile(cmd.StderrRedirect.RedirectLocation, int(filePerms), 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening the file: %s\n", err.Error())
+
+		}
+		// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+		defer file.Close()
+		os.Stderr = file
+	}
+	if cmd.StdoutRedirect.Redirect {
+		var filePerms os.FileMode
+		if cmd.StdoutRedirect.Append {
+			filePerms = os.FileMode(os.O_WRONLY | os.O_CREATE | os.O_APPEND)
+		} else {
+			filePerms = os.FileMode(os.O_WRONLY | os.O_CREATE | os.O_TRUNC)
+		}
+		if _, err := os.Stat(cmd.StdoutRedirect.RedirectLocation); os.IsNotExist(err) {
+			os.MkdirAll(filepath.Dir(cmd.StdoutRedirect.RedirectLocation), 0700) // Create your file
+		}
+		file, err := os.OpenFile(cmd.StdoutRedirect.RedirectLocation, int(filePerms), 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error opening the file: %s\n", err.Error())
+
+		}
+		// fmt.Printf("Running %s with options: %s\n",baseExec, test.Args)
+		defer file.Close()
+		os.Stdout = file
+	}
+
+
+	results :=  fmt.Sprintf("%s\n", strings.Join(cmd.Args, " "))
+
+	os.Stdout = originalStdOut
+	os.Stderr = originalStdErr
+
+	return results 
+	// cmd.Stderr = os.Stderr
+	
+
+}

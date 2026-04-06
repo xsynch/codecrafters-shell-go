@@ -2,6 +2,7 @@ package shellcommands
 
 import (
 	"fmt"
+	"io"
 
 	"log"
 
@@ -434,10 +435,14 @@ func BuildCommand(cmdLine string) (Command, string) {
 
 func RunCommands(commands []Command) {
 	allCmds := make([]*exec.Cmd, 0, len(commands))
+	// echoResults := ""
+	// typeResults := ""
+	// builtinMap := map[int]string{}
 
 	for _, userCmd := range commands {
 		// log.Printf("Command Name: %s\n",userCmd.Name)
 		cmd := exec.Command(userCmd.Name, userCmd.Args...)
+
 
 		cmd.Stderr = os.Stderr
 
@@ -496,10 +501,37 @@ func RunCommands(commands []Command) {
 	}
 	// log.Printf("all commands: %v\n",allCmds)
 	for i := 0; i < len(commands)-1; i++ {
+		
 		r, w, _ := os.Pipe()		
 		// log.Printf("Setting %s to w\n", allCmds[i].Path)
-		allCmds[i].Stdout = w
-		allCmds[i+1].Stdin = r
+		if commands[i].Name == "echo" {
+			if _, err := io.WriteString(w,ReturnEcho(commands[i])); err != nil {
+				log.Printf("%s\n",err.Error())
+				return 
+			}
+			allCmds[i+1].Stdin = r
+			w.Close()
+			continue
+			// log.Printf("%s",ReturnEcho(commands[i]))
+		} else if commands[i].Name == "type"{
+			resultsType, _ := ReturnSearchPath(commands[i].Args[0])
+			// log.Printf("value from return %s",resultsType)
+			if _, err := io.WriteString(w,resultsType); err != nil {
+				log.Printf("%s\n",err.Error())
+				return 
+			}	
+			allCmds[i+1].Stdin = r
+			w.Close()
+			// r.Close()
+			continue		
+			// log.Printf("%s",resultsType)
+			
+
+		} else {
+			allCmds[i].Stdout = w
+		}
+			allCmds[i+1].Stdin = r
+		// }
 
 	    if err := allCmds[i].Start(); err != nil {
         	w.Close()
@@ -509,11 +541,29 @@ func RunCommands(commands []Command) {
 		// r.Close()
 		
 	}
-	allCmds[len(commands)-1].Stdout = os.Stdout
+	switch commands[len(commands) - 1].Name {
+	case "echo":
+		PrintEcho(commands[len(commands) - 1])
+		return 
+	case "type":
+		path, found := ReturnSearchPath(commands[len(commands) - 1].Args[0])
+		if !found{
+			log.Printf("Command not found\n")		
+		} else {
+			fmt.Printf("%s\n",path)
+		}
+		return 
+	default:
+		allCmds[len(commands)-1].Stdout = os.Stdout
+		// log.Printf("stdout: %v\n",allCmds[len(commands)-1].Stdout)
+		err := allCmds[len(allCmds)-1].Start()
+		if err != nil {
+        	log.Printf("Error starting the command: %v\n",err)
+    	}
 
-	if err := allCmds[len(allCmds)-1].Start(); err != nil {
-        log.Printf("Error starting the command: %v\n",err)
-    }
+		
+	}
+
 
 
 

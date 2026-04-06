@@ -21,11 +21,6 @@ import (
 var _ = fmt.Print
 var _ = log.Print
 
-var completer = readline.NewPrefixCompleter(
-	readline.PcItem("echo"),
-	readline.PcItem("exit"),
-	readline.PcItem("type"),
-)
 
 var defaultCommands = [][]rune{[]rune("echo"), []rune("exit"), []rune("type")}
 
@@ -62,13 +57,7 @@ func main() {
 	userType, _ := regexp.Compile("^type ")
 
 	for {
-		/*fmt.Print("$ ")
-		reader := bufio.NewReader((os.Stdin))
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-			os.Exit(1)
-		}*/
+
 		line, err := l.Readline()
 		if err == readline.ErrInterrupt {
 			if len(line) == 0 {
@@ -85,18 +74,8 @@ func main() {
 		line = strings.Trim(line, "\n")
 		originalLine := line
 
-		// userCmd := shellcommands.BuildCommand(line)
-		// fmt.Println(userCmd)
 
-		// fmt.Printf("Line entered: %s\n",strings.Trim(line,"\n"))
-
-		// var userInput string
-		// _, err := fmt.Scanln(&userInput)
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-
-		userCmdString, _ := shellcommands.BuildCommand(originalLine)
+		userCmdString, o := shellcommands.BuildCommand(originalLine)
 		redir, newLine, redirectLocation := shellcommands.CheckForRedirect(line)
 		if redir {
 			// fmt.Println("Redirecting stdout to ",location)
@@ -107,13 +86,13 @@ func main() {
 		if userExit.MatchString(line) {
 			os.Exit(0)
 		}
-		if userEcho.MatchString(line) {
+		if userEcho.MatchString(line) && len(o) == 0 {
 			shellcommands.PrintEcho(userCmdString)
 			// shellcommands.ProcessInput(line, redirectLocation)
 			// shellcommands.ProcessEcho(line)
 			continue
 		}
-		if userType.MatchString(line) {
+		if userType.MatchString(line) && len(o) == 0 {
 			line = checkCommands(line)
 			continue
 			// if line == ""{
@@ -152,8 +131,7 @@ func checkCommands(inputs string) string {
 }
 
 func executeProgram(progName string, redirectLocation string) bool {
-	// resultsTest := []string{}
-	// var test exec.Cmd
+
 	// fmt.Printf("Sending over: %s\n",progName)
 	cmdTest, moreCmds := shellcommands.BuildCommand(progName)
 	allCommands = []shellcommands.Command{}
