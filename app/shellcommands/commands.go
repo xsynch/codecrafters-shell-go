@@ -32,7 +32,7 @@ type Command struct {
 	StderrRedirect StdErrRedirect
 }
 
-var Commands = []string{"exit", "echo", "exit", "type"}
+var Commands = []string{"exit", "echo", "history", "type"}
 var singleQuotesOpen bool
 var dbQuotesOpen bool
 var escaped bool
