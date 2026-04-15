@@ -100,6 +100,14 @@ func main() {
 			// }
 
 		}
+		if userCmdString.Name == "history" && len(o) == 0 {
+			_, err = shellcommands.PrintHistory(userCmdString, l)
+			if err != nil {
+				log.Printf("Error Reading History file: %s\n",err)
+			}
+			continue
+
+		}		
 		if !executeProgram(originalLine, redirectLocation) {
 
 			fmt.Printf("%s: command not found\n", line)
